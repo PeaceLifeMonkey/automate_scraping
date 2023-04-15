@@ -1,3 +1,5 @@
+import timeit
+
 from bs4 import BeautifulSoup
 from common.utils.amazon.amazon import Amazon
 
@@ -17,14 +19,42 @@ class ScrapAmazon(Amazon):
         self.frame_material = str()
         self.top_material = str()
 
-    def scrap_amazon(self, asin:str):
+    def timeit_decorator(func):
+        def wrapper(*args, **kwargs):
+            start_time = timeit.default_timer()
+            result = func(*args, **kwargs)
+            end_time = timeit.default_timer()
+            print(f"Execution time: {end_time - start_time} seconds")
+            return result
+        return wrapper
+
+    def init_variable(self) -> None:
+        self.title = str()
+        self.image = str()
+        self.rating = int()
+        self.rating_count = float()
+        self.new_price = float()
+        self.list_price = float()
+        self.brand = str()
+        self.color = str()
+        self.material = str()
+        self.frame_material = str()
+        self.top_material = str()
+
+    @timeit_decorator
+    def scrap_amazon(self, asin:str) -> None:
+        self.init_variable()
+
         self.get_page(asin)
         self.get_basic_info(asin)        
 
-    def get_basic_info(self, asin:str):
+    def get_basic_info(self, asin:str) -> None:
         if self.check_exist():
+            self.driver.implicitly_wait(0.5)
             soup = BeautifulSoup(self.driver.page_source,'html.parser')
             self.get_title(soup)
+            self.get_rating(soup)
+            self.get_brand(soup)
 
     def check_exist(self) -> None:
         dogs = self.driver_find_elements('//img[@id="d"]')
@@ -50,7 +80,10 @@ class ScrapAmazon(Amazon):
                 rating = rating[0].get_attribute('title')
                 self.rating = float(rating.replace(' out of 5 stars',''))
                 rating_count = eles_1[0].find("span",{"id":"acrCustomerReviewText"}).text.strip()
-                self.rating_count = int(rating_count.replace(' ratings','').replace(',',''))
+                self.rating_count = int(
+                    rating_count.replace(
+                    ' ratings','').strip().replace(',','')
+                )
             else:
                 self.rating = None
                 self.rating_count = None
@@ -66,8 +99,8 @@ class ScrapAmazon(Amazon):
             self.brand = None
 
 if __name__ == "__main__":
-    profile_path = r'I:\profiles\test'
-    cfg_path = r'F:\Code\freelance\automate_scraping\configs\amazon\amazon_web_config.yaml'
+    profile_path = '/media/quang/Quang/Automate/profiles'
+    cfg_path = '/media/quang/Quang/Automate/configs/amazon/amazon_web_config.yaml'
     amz = ScrapAmazon(cfg_path,profile_path)
     asin = 'B08B6F1NNR'
     amz.set_amazon_location_v2('90001')
