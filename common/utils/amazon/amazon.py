@@ -21,7 +21,7 @@ class Amazon:
         self.load_config(config_path)
         self.init_driver(profile_path)
         self.withdraw_time = datetime.datetime.now()
-        self.set_amazon_location_v2('90001')
+        # self.set_amazon_location_v2('90001')
 
     def load_config(self, config_path) -> None:
         with open(config_path) as file:
@@ -118,9 +118,10 @@ class Amazon:
         self.driver.refresh()
         return True
 
-    def set_amazon_location_v2(self, zipcode: str) -> bool:
+    def set_amazon_location_v2(self, asin:str, zipcode: str) -> bool:
         try:
-            self.driver.get(self._AMAZON_WEB_ADDRESS)
+            link = self.cfg["AMAZON_LINK"] + asin + "?th=1&psc=1"
+            self.driver.get(link)
             image = self.driver_find_elements('//*[@class="a-row a-text-center"]/img')
             if len(image) != 0:
                 link_image = image[0].get_attribute("src")
@@ -128,35 +129,35 @@ class Amazon:
                 solution = captcha.solve()
                 self.driver.find_elements(By.XPATH,'//*[@id="captchacharacters"]')[0].send_keys(solution)
                 self.driver.find_elements(By.XPATH,'//*[@type="submit"]')[0].click()
-                # self.driver.get(self._AMAZON_WEB_ADDRESS)
-                self.chrome.waiting_for_process()
 
-                if self.check_amazon_location(zipcode):
-                    # print("Location is changed!!!")
-                    # self.logger.info("Location is changed!!!")
-                    return True
-                # else:
-                #     print("Location is changed!!!")
-                    # self.logger.info("Try to change amazon location!!!")
+            self.chrome.waiting_for_process()
 
-                xpath = r'//span[@id="nav-global-location-data-modal-action"]'
-                location_elements = self.driver_find_elements(xpath)
-                if len(location_elements) == 1:
-                    data = location_elements[0].get_attribute("data-a-modal")
-                    json_data = json.loads(data)
+            if self.check_amazon_location(zipcode):
+                # print("Location is changed!!!")
+                # self.logger.info("Location is changed!!!")
+                return True
+            # else:
+            #     print("Location is changed!!!")
+                # self.logger.info("Try to change amazon location!!!")
 
-                    cookies = self.chrome.get_cookies_dict()
-                    ajax_token = json_data["ajaxHeaders"]["anti-csrftoken-a2z"]
-                    check, mess = send_change_location_request(
-                        ajax_token, cookies, zipcode
-                    )
+            xpath = r'//span[@id="nav-global-location-data-modal-action"]'
+            location_elements = self.driver_find_elements(xpath)
+            if len(location_elements) == 1:
+                data = location_elements[0].get_attribute("data-a-modal")
+                json_data = json.loads(data)
 
-                    if check == False:
-                        check = self.set_amazon_location_v1(zipcode)
-                        return False
-                else:
+                cookies = self.chrome.get_cookies_dict()
+                ajax_token = json_data["ajaxHeaders"]["anti-csrftoken-a2z"]
+                check, mess = send_change_location_request(
+                    ajax_token, cookies, zipcode
+                )
+
+                if check == False:
                     check = self.set_amazon_location_v1(zipcode)
                     return False
+            else:
+                check = self.set_amazon_location_v1(zipcode)
+                return False
         except Exception as ex:
             print(f"Get link Failed!!! Exception has been thrown. {ex}")
             return False
