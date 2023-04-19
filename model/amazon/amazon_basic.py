@@ -62,7 +62,7 @@ class ScrapAmazon(Amazon):
             self.driver.implicitly_wait(0.5)
             page_source = self.driver.page_source
             soup = BeautifulSoup(page_source,'html.parser')
-            self.get_image()
+            self.get_image(soup)
             self.get_category(soup)
             self.get_price(asin)
             self.get_title(soup)
